@@ -656,14 +656,13 @@
 //  → ⚙️ Configurações do projeto → copiar o "firebaseConfig"
 // ═══════════════════════════════════════════════════════════════
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDOWpLQTCoSMPgy93WfGU9ElSc5xmEJJL0",
-  authDomain: "my-pog-characters.firebaseapp.com",
-  databaseURL: "https://my-pog-characters-default-rtdb.firebaseio.com",
-  projectId: "my-pog-characters",
-  storageBucket: "my-pog-characters.firebasestorage.app",
-  messagingSenderId: "630288558183",
-  appId: "1:630288558183:web:60cf8bf02e6a9b7b66ccc2",
-  measurementId: "G-NV1XMHGYJY"
+  apiKey:            "SUA_API_KEY_AQUI",
+  authDomain:        "SEU_PROJETO.firebaseapp.com",
+  databaseURL:       "https://SEU_PROJETO-default-rtdb.firebaseio.com",
+  projectId:         "SEU_PROJETO",
+  storageBucket:     "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId:             "SEU_APP_ID"
 };
 
 // Caminho raiz dentro do banco onde os dados ficam salvos.
@@ -677,7 +676,7 @@ const DB_ROOT_PATH = 'personagens_topicos';
 //  os dados — é o que impede que outras pessoas mexam nos seus
 //  personagens mesmo com o site público no GitHub Pages.
 // ═══════════════════════════════════════════════════════════════
-const ACCESS_PASSWORD = "pog1123";
+const ACCESS_PASSWORD = "minha-senha-secreta";
 
 // Detecta automaticamente se o config acima ainda é o placeholder de exemplo.
 // Se for, o app roda em MODO DEMONSTRAÇÃO (sincroniza só entre abas do mesmo navegador).
@@ -730,6 +729,14 @@ const Storage = {
 //  Em modo demo: replica entre abas/janelas do mesmo navegador via
 //  localStorage 'storage' event + BroadcastChannel, só para testes.
 // ─────────────────────────────────────
+const CLOUD_TIMEOUT_MS = 8000;
+function withTimeout(promise, ms, fallbackValue) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+  ]);
+}
+
 const CloudSync = {
   ref: null,
   db: null,
@@ -745,7 +752,13 @@ const CloudSync = {
 
   async _initFirebase() {
     try {
-      await this._loadFirebaseSDK();
+      await withTimeout(this._loadFirebaseSDK(), CLOUD_TIMEOUT_MS, null);
+      if (!window.firebase || !firebase.database) {
+        console.error('SDK do Firebase não carregou a tempo (verifique a conexão ou o domínio bloqueado).');
+        updateConnectionBadge('offline');
+        this.hadRemoteData = false;
+        return;
+      }
       if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       this.db = firebase.database();
       this.ref = this.db.ref(`${DB_ROOT_PATH}/${this.accessKey}/characters`);
@@ -754,8 +767,10 @@ const CloudSync = {
       // IMPORTANTE: busca o estado remoto atual ANTES de decidir se este é
       // realmente o "primeiro uso" — evita que um segundo dispositivo (ex.:
       // celular sem cache local) sobrescreva dados reais já salvos na nuvem.
+      // Tem um limite de tempo: se a rede travar, seguimos em frente sem bloquear.
       let snapshot = null;
-      try { snapshot = await this.ref.once('value'); } catch (e) { /* offline no primeiro load */ }
+      try { snapshot = await withTimeout(this.ref.once('value'), CLOUD_TIMEOUT_MS, null); }
+      catch (e) { snapshot = null; }
       const remoteData = snapshot ? snapshot.val() : null;
       const remoteList = Array.isArray(remoteData) ? remoteData : (remoteData ? Object.values(remoteData) : null);
       this.hadRemoteData = !!(remoteList && remoteList.length);
@@ -1288,6 +1303,9 @@ function doLogout() {
 }
 
 async function startAppWithKey(key) {
+  // Mostra o dashboard IMEDIATAMENTE. A sincronização com a nuvem roda em
+  // segundo plano a partir daqui — nunca deve travar a tela de login.
+  showView('dashboard');
   document.getElementById('demo-banner').style.display = DEMO_MODE ? 'block' : 'none';
   updateConnectionBadge(DEMO_MODE ? 'demo' : 'offline');
 
@@ -1300,12 +1318,17 @@ async function startAppWithKey(key) {
     characters = JSON.parse(JSON.stringify(DEFAULT_CHARACTERS));
     isFirstRun = true;
   }
-
-  showView('dashboard');
   renderGrid();
 
   // Conecta ao banco em nuvem (ou modo demo) e liga o listener em tempo real.
-  await CloudSync.init(key);
+  // Protegido por try/catch + timeout interno: se a nuvem travar ou falhar,
+  // o app continua funcionando normalmente em modo local/offline.
+  try {
+    await CloudSync.init(key);
+  } catch (e) {
+    console.error('Não foi possível conectar à nuvem, continuando offline:', e);
+    updateConnectionBadge('offline');
+  }
 
   // Primeira execução com esta chave: envia os personagens padrão para a nuvem,
   // mas só se a nuvem realmente não tinha nada (evita sobrescrever outro dispositivo).
