@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Personagens & Tópicos</title>
+<style>
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161d;
+    --surface2: #1e1e27;
+    --surface3: #26262f;
+    --border: #2a2a36;
+    --text: #eaeaf5;
+    --text-muted: #6e6e90;
+    --text-soft: #a0a0c0;
+    --accent: #a78bfa;
+    --radius: 18px;
+    --radius-sm: 10px;
+    --transition: 0.22s cubic-bezier(.4,0,.2,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* ── VIEWS ── */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeUp .25s ease forwards; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ══════════════════════════════════
+     DASHBOARD
+  ══════════════════════════════════ */
+  .app-header {
+    padding: 28px 28px 0;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .app-brand { display: flex; align-items: center; gap: 10px; }
+  .app-brand-icon { font-size: 1.4rem; }
+  .app-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.03em; }
+  .app-title span { color: var(--accent); }
+  .app-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+  .btn-add {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-soft); padding: 9px 18px; border-radius: var(--radius-sm);
+    font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: var(--transition);
+  }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); background: rgba(167,139,250,.08); }
+
+  .search-bar-wrap { padding: 20px 28px 0; }
+  .search-bar {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 16px;
+    color: var(--text); font-size: 0.875rem; outline: none; transition: var(--transition);
+  }
+  .search-bar:focus { border-color: var(--accent); }
+  .search-bar::placeholder { color: var(--text-muted); }
+
+  .grid-section { padding: 20px 28px 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 4px; }
+
+  /* ── CARD ── */
+  .char-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    overflow: hidden;
+    position: relative;
+  }
+  .char-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+  .card-color-bar { height: 4px; width: 100%; transition: var(--transition); }
+  .card-top {
+    padding: 18px 18px 14px;
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .card-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    flex-shrink: 0; overflow: hidden;
+    border: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.7rem; transition: var(--transition);
+    background: var(--surface2);
+  }
+  .card-avatar img { width:100%; height:100%; object-fit:cover; }
+  .char-card:hover .card-avatar { transform: scale(1.05); }
+  .card-title-block { flex: 1; min-width: 0; }
+  .card-name { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-role {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 99px;
+    margin-top: 5px; transition: var(--transition);
+  }
+  .card-divider { height: 1px; background: var(--border); margin: 0 18px; }
+  .card-stats {
+    padding: 12px 18px 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .stat-item { display: flex; flex-direction: column; gap: 2px; }
+  .stat-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+  .stat-value { font-size: 0.82rem; font-weight: 500; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-value.highlight { font-weight: 700; }
+  .card-appearance {
+    padding: 0 18px 14px;
+    font-size: 0.78rem; color: var(--text-muted);
+    line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card-badges { padding: 0 18px 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    font-size: 0.7rem; font-weight: 600; padding: 3px 9px;
+    border-radius: 99px; border: 1px solid transparent;
+  }
+
+  /* ══════════════════════════════════
+     DETAIL VIEW
+  ══════════════════════════════════ */
+  .detail-view { min-height: 100vh; }
+  .detail-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px 0; flex-wrap: wrap; gap: 10px;
+  }
+  .btn-back {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-soft); padding: 8px 16px; border-radius: var(--radius-sm);
+    font-size: 0.85rem; cursor: pointer; transition: var(--transition);
+  }
+  .btn-back:hover { border-color: var(--accent); color: var(--accent); }
+
+  .detail-hero {
+    padding: 24px 28px 0;
+    display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start;
+  }
+  .detail-avatar-col { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+  .detail-avatar-wrap { position: relative; cursor: pointer; }
+  .detail-avatar {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 3px solid var(--accent); overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; background: var(--surface2); transition: var(--transition);
+  }
+  .detail-avatar img { width:100%; height:100%; object-fit:cover; }
+  .upload-overlay {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: rgba(0,0,0,.6); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    opacity: 0; transition: var(--transition);
+    font-size: 0.65rem; color: #fff; text-align: center; padding: 10px;
+  }
+  .detail-avatar-wrap:hover .upload-overlay { opacity: 1; }
+  #avatarInput { display: none; }
+
+  /* Drag & Drop zone */
+  .drop-zone {
+    width: 120px; text-align: center;
+    font-size: 0.68rem; color: var(--text-muted);
+    border: 1px dashed var(--border); border-radius: var(--radius-sm);
+    padding: 6px 8px; transition: var(--transition); cursor: pointer;
+  }
+  .drop-zone.drag-over { border-color: var(--accent); color: var(--accent); background: rgba(167,139,250,.07); }
+
+  .detail-info-col { flex: 1; min-width: 240px; }
+  .detail-name-edit {
+    font-size: 1.9rem; font-weight: 800; letter-spacing: -0.04em;
+    background: none; border: none; color: var(--text); outline: none; width: 100%;
+    font-family: inherit; border-bottom: 2px solid transparent; transition: var(--transition);
+  }
+  .detail-name-edit:focus { border-bottom-color: var(--accent); }
+
+  .detail-meta-row {
+    display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .meta-input {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-soft);
+    border-radius: 8px; padding: 5px 10px; font-size: 0.8rem; outline: none;
+    transition: var(--transition); font-family: inherit;
+  }
+  .meta-input:focus { border-color: var(--accent); color: var(--text); }
+  .meta-input.w-sm { width: 80px; }
+  .meta-input.w-md { width: 130px; }
+
+  .detail-desc-edit {
+    margin-top: 12px; width: 100%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-soft); border-radius: var(--radius-sm); padding: 10px 14px;
+    font-size: 0.875rem; outline: none; resize: vertical; min-height: 64px;
+    font-family: inherit; line-height: 1.6; transition: var(--transition);
+  }
+  .detail-desc-edit:focus { border-color: var(--accent); color: var(--text); }
+
+  /* Appearance field */
+  .appearance-field {
+    margin-top: 10px; width: 100%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-soft); border-radius: var(--radius-sm); padding: 8px 14px;
+    font-size: 0.82rem; outline: none; font-family: inherit; transition: var(--transition);
+  }
+  .appearance-field:focus { border-color: var(--accent); color: var(--text); }
+
+  /* Color picker row */
+  .color-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .color-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; letter-spacing:.05em; text-transform:uppercase; }
+  .swatch {
+    width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: var(--transition); flex-shrink: 0;
+  }
+  .swatch:hover, .swatch.active { border-color: #fff; transform: scale(1.25); }
+  input[type=color].custom-color {
+    width: 22px; height: 22px; border: none; border-radius: 50%; cursor: pointer;
+    padding: 0; background: none; outline: none;
+  }
+
+  /* Stats grid in detail */
+  .detail-stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr));
+    gap: 10px; margin: 18px 28px 0;
+  }
+  .detail-stat-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px;
+  }
+  .detail-stat-box label { font-size: 0.68rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color: var(--text-muted); display:block; margin-bottom:5px; }
+  .detail-stat-box input {
+    background: none; border: none; color: var(--text); font-size: 0.95rem;
+    font-weight: 700; outline: none; width: 100%; font-family: inherit;
+  }
+
+  /* ── TABS ── */
+  .sub-tabs {
+    display: flex; gap: 2px; padding: 20px 28px 0;
+    border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none;
+  }
+  .sub-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 9px 16px; background: none; border: none; color: var(--text-muted);
+    font-size: 0.84rem; font-weight: 500; cursor: pointer;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    transition: var(--transition); margin-bottom: -1px; border-radius: 6px 6px 0 0;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+  .tab-panel { display: none; padding: 24px 28px 40px; }
+  .tab-panel.active { display: block; animation: fadeUp .2s ease forwards; }
+  .section-title { font-size: 0.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color: var(--text-muted); margin-bottom: 16px; }
+
+  /* ── TODO ── */
+  .input-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .field-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius-sm); padding: 9px 14px;
+    font-size: 0.875rem; outline: none; transition: var(--transition); font-family: inherit;
+  }
+  .field-input:focus { border-color: var(--accent); }
+  .btn-primary {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 9px 18px;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: var(--transition); white-space: nowrap;
+  }
+  .btn-primary:hover { filter: brightness(1.12); }
+  .todo-list { display: flex; flex-direction: column; gap: 8px; }
+  .todo-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 14px; transition: var(--transition);
+  }
+  .todo-item input[type=checkbox] { accent-color: var(--accent); width:16px; height:16px; cursor:pointer; flex-shrink:0; }
+  .todo-item label { flex:1; font-size:.875rem; cursor:pointer; transition:var(--transition); }
+  .todo-item.done label { text-decoration:line-through; color:var(--text-muted); }
+  .btn-icon { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:.95rem; padding:3px 7px; border-radius:6px; transition:var(--transition); }
+  .btn-icon:hover { color:#f87171; background:rgba(248,113,113,.1); }
+
+  /* ── NOTES ── */
+  .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap: 12px; }
+  .note-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display:flex; flex-direction:column; gap:8px; }
+  .note-card textarea { flex:1; background:none; border:none; color:var(--text); font-size:.85rem; resize:none; outline:none; line-height:1.6; min-height:80px; font-family:inherit; }
+  .note-footer { display:flex; justify-content:flex-end; }
+  .btn-add-note {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--surface2); border:1px dashed var(--border); border-radius:12px;
+    color:var(--text-muted); cursor:pointer; padding:14px; min-height:100px;
+    font-size:.85rem; transition:var(--transition); width:100%; margin-top:12px;
+  }
+  .btn-add-note:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ── GALLERY ── */
+  .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:12px; }
+  .gallery-item {
+    background:var(--surface2); border:1px solid var(--border); border-radius:12px;
+    overflow:hidden; position:relative; aspect-ratio:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .gallery-item img { width:100%; height:100%; object-fit:cover; }
+  .gallery-link-card { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; text-align:center; width:100%; }
+  .gallery-link-card span { font-size:.72rem; color:var(--text-muted); word-break:break-all; }
+  .del-overlay {
+    position:absolute; top:6px; right:6px; background:rgba(0,0,0,.65);
+    border:none; color:#fff; border-radius:50%; width:22px; height:22px;
+    font-size:.7rem; cursor:pointer; display:none; align-items:center; justify-content:center;
+  }
+  .gallery-item:hover .del-overlay { display:flex; }
+
+  /* ── LIST SECTIONS (powers/items/titles) ── */
+  .list-cards { display:flex; flex-direction:column; gap:10px; }
+  .list-card {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; display:flex; align-items:flex-start; gap:12px;
+  }
+  .list-card-icon { font-size:1.3rem; flex-shrink:0; margin-top:3px; }
+  .list-card-body { flex:1; }
+  .lc-name { font-size:.9rem; font-weight:600; background:none; border:none; color:var(--text); outline:none; width:100%; font-family:inherit; }
+  .lc-desc { font-size:.8rem; color:var(--text-muted); background:none; border:none; outline:none; width:100%; margin-top:5px; resize:none; font-family:inherit; line-height:1.5; }
+  .btn-add-list {
+    display:flex; align-items:center; gap:8px; background:var(--surface2);
+    border:1px dashed var(--border); border-radius:12px; padding:12px 16px;
+    color:var(--text-muted); font-size:.85rem; cursor:pointer; transition:var(--transition); width:100%; text-align:left; margin-top:10px;
+  }
+  .btn-add-list:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align:center; color:var(--text-muted); padding:36px 16px; font-size:.875rem; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.75);
+    display:flex; align-items:center; justify-content:center; z-index:200; padding:16px;
+    opacity:0; pointer-events:none; transition:var(--transition);
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:28px; width:100%; max-width:460px;
+    transform:scale(.96); transition:var(--transition); max-height:90vh; overflow-y:auto;
+  }
+  .modal-overlay.open .modal { transform:scale(1); }
+  .modal h2 { font-size:1.05rem; font-weight:700; margin-bottom:20px; }
+  .modal-label { font-size:.75rem; color:var(--text-muted); font-weight:600; letter-spacing:.05em; text-transform:uppercase; display:block; margin-bottom:6px; }
+  .modal-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    color:var(--text); border-radius:var(--radius-sm); padding:10px 14px;
+    font-size:.875rem; outline:none; transition:var(--transition); font-family:inherit; margin-bottom:14px;
+  }
+  .modal-input:focus { border-color:var(--accent); }
+  .modal-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .emoji-picker { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:16px; }
+  .ep-opt { font-size:1.35rem; cursor:pointer; padding:6px; border-radius:8px; border:2px solid transparent; transition:var(--transition); }
+  .ep-opt:hover, .ep-opt.sel { border-color:var(--accent); background:rgba(167,139,250,.12); }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+  .btn-cancel { background:var(--surface2); border:1px solid var(--border); color:var(--text-muted); padding:9px 16px; border-radius:var(--radius-sm); font-size:.85rem; cursor:pointer; transition:var(--transition); }
+  .btn-cancel:hover { color:var(--text); }
+
+  @media (max-width:540px) {
+    .app-header, .grid-section, .detail-topbar, .detail-hero, .detail-stats-grid, .sub-tabs, .tab-panel { padding-left:16px; padding-right:16px; }
+    .detail-hero { flex-direction:column; align-items:center; text-align:center; }
+    .detail-info-col { min-width:unset; width:100%; }
+    .color-row { justify-content:center; }
+    .grid { grid-template-columns:1fr; }
+    .modal-row { grid-template-columns:1fr; }
+  }
+
+  /* ── EXTENSION / COMPACT POPUP MODE ── */
+  @media (max-width:600px) {
+    body { min-width: 380px; }
+    .app-header { padding: 18px 16px 0; }
+    .app-title { font-size: 1.05rem; }
+    .app-subtitle { font-size: 0.7rem; }
+    .search-bar-wrap { padding: 14px 16px 0; }
+    .grid-section { padding: 14px 16px 24px; }
+    .grid { grid-template-columns: 1fr; gap: 12px; }
+    .detail-stats-grid { margin: 14px 16px 0; grid-template-columns: repeat(2,1fr); }
+  }
+
+  /* ── LOGIN / ACCESS GATE ── */
+  .login-view {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    width: 100%; max-width: 400px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 32px 28px; text-align: center;
+  }
+  .login-icon { font-size: 2.2rem; margin-bottom: 6px; }
+  .login-card h1 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .login-sub { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
+  .login-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 12px; min-height: 16px; }
+  .login-hint.error { color: #f87171; }
+  .login-demo-banner {
+    margin-top: 14px; font-size: 0.68rem; color: #facc15;
+    background: rgba(250,204,21,.08); border: 1px solid rgba(250,204,21,.25);
+    padding: 8px 10px; border-radius: 10px; line-height: 1.5; text-align: left;
+  }
+
+  /* ── CONNECTION BADGE + LOGOUT ── */
+  .header-actions { display: flex; align-items: center; gap: 10px; }
+  .conn-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 99px;
+  }
+  .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: #f87171; flex-shrink: 0; transition: background .2s; }
+  .conn-badge.online .conn-dot { background: #34d399; }
+  .conn-badge.demo .conn-dot { background: #facc15; }
+  .btn-logout {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 0.78rem; cursor: pointer; transition: var(--transition);
+  }
+  .btn-logout:hover { border-color: #f87171; color: #f87171; }
+
+  /* ── AUTOSAVE INDICATOR ── */
+  #save-indicator {
+    position: fixed; bottom: 14px; right: 14px; z-index: 500;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
+    padding: 6px 12px; border-radius: 99px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .25s ease, transform .25s ease;
+    pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  #save-indicator.show { opacity: 1; transform: translateY(0); }
+  #save-indicator .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0;
+    animation: dotPulse 1s ease-in-out;
+  }
+  #save-indicator.saving .dot { background: #facc15; }
+  #save-indicator.error .dot { background: #f87171; }
+  @keyframes dotPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(167,139,250,.6); }
+    40% { transform: scale(1.4); box-shadow: 0 0 0 5px rgba(167,139,250,0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(167,139,250,0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ ACCESS GATE (LOGIN) ══ -->
+<div id="view-login" class="view active login-view">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <h1>Personagens & Tópicos</h1>
+    <p class="login-sub">Digite a <strong>senha de acesso</strong> para sincronizar seus dados na nuvem em todos os seus dispositivos.</p>
+    <input class="modal-input" id="login-key" type="password" placeholder="Senha"
+           onkeydown="if(event.key==='Enter')doLogin()" autocomplete="off"/>
+    <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
+    <p class="login-hint" id="login-hint"></p>
+    <div class="login-demo-banner" id="demo-banner" style="display:none">
+      ⚠️ <strong>Modo demonstração:</strong> nenhum banco de dados real foi configurado ainda (veja <code>FIREBASE_CONFIG</code> no início do &lt;script&gt;). A sincronização abaixo funciona apenas entre abas/janelas deste mesmo navegador, não entre dispositivos diferentes. Configure suas credenciais do Firebase para sincronização real entre celular e notebook.
+    </div>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="view-dashboard" class="view">
+  <div class="app-header">
+    <div>
+      <div class="app-brand">
+        <span class="app-brand-icon">✦</span>
+        <span class="app-title"><span>Personagens</span> & Tópicos</span>
+      </div>
+      <div class="app-subtitle">Gerencie seus personagens, poderes e inventário</div>
+    </div>
+    <div class="header-actions">
+      <div class="conn-badge" id="conn-badge"><span class="conn-dot"></span><span id="conn-badge-text">Conectando...</span></div>
+      <button class="btn-add" onclick="openAddModal()">＋ Novo Personagem</button>
+      <button class="btn-logout" onclick="doLogout()" title="Sair e pedir senha novamente">Sair</button>
+    </div>
+  </div>
+  <div class="search-bar-wrap">
+    <input class="search-bar" type="text" placeholder="🔍  Buscar personagem..." oninput="filterCards(this.value)"/>
+  </div>
+  <div class="grid-section">
+    <div class="grid" id="chars-grid"></div>
+  </div>
+</div>
+
+<!-- ══ DETAIL VIEW ══ -->
+<div id="view-detail" class="view detail-view">
+  <div class="detail-topbar">
+    <button class="btn-back" onclick="goBack()">← Voltar ao Grid</button>
+    <div style="font-size:.8rem;color:var(--text-muted)" id="detail-breadcrumb"></div>
+  </div>
+
+  <!-- Hero -->
+  <div class="detail-hero">
+    <div class="detail-avatar-col">
+      <div class="detail-avatar-wrap" onclick="document.getElementById('avatarInput').click()"
+           ondragover="event.preventDefault();this.querySelector('.upload-overlay').style.opacity=1"
+           ondragleave="this.querySelector('.upload-overlay').style.opacity=0"
+           ondrop="handleDrop(event)">
+        <div class="detail-avatar" id="detail-avatar-el">
+          <span id="detail-av-emoji"></span>
+        </div>
+        <div class="upload-overlay">📷<span>Upload / Arrastar</span></div>
+      </div>
+      <div class="drop-zone" id="drop-zone-hint"
+           onclick="document.getElementById('avatarInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event);this.classList.remove('drag-over')">
+        Arraste ou clique para trocar imagem
+      </div>
+      <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)"/>
+    </div>
+
+    <div class="detail-info-col">
+      <input class="detail-name-edit" id="detail-name-edit" type="text" placeholder="Nome do personagem"
+             oninput="saveField('name',this.value)"/>
+
+      <div class="detail-meta-row">
+        <input class="meta-input w-sm" id="detail-class" placeholder="Classe" oninput="saveField('class',this.value)"/>
+        <input class="meta-input w-sm" id="detail-level" type="number" min="1" placeholder="Nível" oninput="saveField('level',this.value)"/>
+        <input class="meta-input w-md" id="detail-money" placeholder="💰 Recursos" oninput="saveField('money',this.value)"/>
+        <input class="meta-input w-md" id="detail-cargo" placeholder="🏅 Cargo atual" oninput="saveField('cargo',this.value)"/>
+      </div>
+
+      <input class="appearance-field" id="detail-appearance" type="text"
+             placeholder="✦ Aparência física (ex: cabelos escuros, olhos azuis...)"
+             oninput="saveField('appearance',this.value)"/>
+
+      <textarea class="detail-desc-edit" id="detail-desc-edit" rows="3"
+                placeholder="Biografia / descrição do personagem..."
+                oninput="saveField('description',this.value)"></textarea>
+
+      <div class="color-row">
+        <span class="color-label">Cor:</span>
+        <div id="color-swatches"></div>
+        <input type="color" class="custom-color" id="custom-color" title="Cor personalizada" onchange="applyColor(this.value,true)"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick stats -->
+  <div class="detail-stats-grid" id="detail-stats-grid">
+    <!-- rendered dynamically -->
+  </div>
+
+  <!-- Tabs -->
+  <div class="sub-tabs" id="sub-tabs">
+    <button class="tab-btn active" onclick="switchTab('tasks',this)">✅ Tarefas</button>
+    <button class="tab-btn" onclick="switchTab('notes',this)">📝 Notas/Lore</button>
+    <button class="tab-btn" onclick="switchTab('gallery',this)">🖼 Galeria</button>
+    <button class="tab-btn" onclick="switchTab('powers',this)">⚡ Poderes</button>
+    <button class="tab-btn" onclick="switchTab('items',this)">🎒 Itens/Pets</button>
+    <button class="tab-btn" onclick="switchTab('titles',this)">🏆 Títulos</button>
+  </div>
+
+  <!-- Tab: Tasks -->
+  <div id="panel-tasks" class="tab-panel active">
+    <p class="section-title">Tarefas & Aparências</p>
+    <div class="input-row">
+      <input class="field-input" id="todo-input" type="text" placeholder="Nova tarefa..." onkeydown="if(event.key==='Enter')addTodo()"/>
+      <button class="btn-primary" id="btn-todo-add" onclick="addTodo()">Adicionar</button>
+    </div>
+    <div class="todo-list" id="todo-list"></div>
+  </div>
+
+  <!-- Tab: Notes -->
+  <div id="panel-notes" class="tab-panel">
+    <p class="section-title">Notas & Lore</p>
+    <div class="notes-grid" id="notes-grid"></div>
+    <button class="btn-add-note" onclick="addNote()">＋ Nova nota</button>
+  </div>
+
+  <!-- Tab: Gallery -->
+  <div id="panel-gallery" class="tab-panel">
+    <p class="section-title">Galeria de Mídia</p>
+    <div class="input-row">
+      <input class="field-input" id="gallery-input" type="text" placeholder="URL de imagem ou link..."/>
+      <button class="btn-primary" onclick="addGalleryItem()">Adicionar</button>
+    </div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </div>
+
+  <!-- Tab: Powers -->
+  <div id="panel-powers" class="tab-panel">
+    <p class="section-title">Poderes & Habilidades</p>
+    <div class="list-cards" id="powers-list"></div>
+    <button class="btn-add-list" onclick="addListItem('powers','⚡','Novo poder','Descrição do poder...')">＋ Adicionar poder</button>
+  </div>
+
+  <!-- Tab: Items -->
+  <div id="panel-items" class="tab-panel">
+    <p class="section-title">Itens, Equipamentos & Pets</p>
+    <div class="list-cards" id="items-list"></div>
+    <button class="btn-add-list" onclick="addListItem('items','🎒','Novo item','Descrição...')">＋ Adicionar item ou pet</button>
+  </div>
+
+  <!-- Tab: Titles -->
+  <div id="panel-titles" class="tab-panel">
+    <p class="section-title">Títulos & Conquistas</p>
+    <div class="list-cards" id="titles-list"></div>
+    <button class="btn-add-list" onclick="addListItem('titles','🏆','Novo título','Contexto da conquista...')">＋ Adicionar título</button>
+  </div>
+</div>
+
+<!-- ══ ADD MODAL ══ -->
+<div id="add-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2>✦ Novo Personagem</h2>
+    <span class="modal-label">Ícone</span>
+    <div class="emoji-picker" id="emoji-picker"></div>
+    <span class="modal-label">Nome *</span>
+    <input class="modal-input" id="new-name" type="text" placeholder="Ex: Naruto, Elara, Projeto Alpha..."/>
+    <div class="modal-row">
+      <div>
+        <span class="modal-label">Classe</span>
+        <input class="modal-input" id="new-class" type="text" placeholder="Ex: Mago"/>
+      </div>
+      <div>
+        <span class="modal-label">Nível</span>
+        <input class="modal-input" id="new-level" type="number" min="1" placeholder="1"/>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div>
+        <span class="modal-label">Recursos / Dinheiro</span>
+        <input class="modal-input" id="new-money" type="text" placeholder="Ex: 500 Gold"/>
+      </div>
+      <div>
+        <span class="modal-label">Cargo / Título</span>
+        <input class="modal-input" id="new-cargo" type="text" placeholder="Ex: Capitão"/>
+      </div>
+    </div>
+    <span class="modal-label">Aparência</span>
+    <input class="modal-input" id="new-appearance" type="text" placeholder="Ex: Cabelos escuros, olhos azuis..."/>
+    <span class="modal-label">Descrição</span>
+    <textarea class="modal-input" id="new-desc" rows="3" placeholder="Breve bio..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" id="modal-create-btn" onclick="addCharacter()">Criar Personagem</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUTOSAVE INDICATOR ══ -->
+<div id="save-indicator"><span class="dot"></span><span id="save-indicator-text">Salvo</span></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  🔧 CONFIGURAÇÃO DO BANCO DE DADOS EM NUVEM (Firebase Realtime DB)
+//  Substitua os valores abaixo pelos dados do SEU projeto:
+//  Console: https://console.firebase.google.com
+//  → Criar projeto → Build → Realtime Database → Criar banco de dados
+//  → ⚙️ Configurações do projeto → copiar o "firebaseConfig"
+// ═══════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "SUA_API_KEY_AQUI",
+  authDomain:        "SEU_PROJETO.firebaseapp.com",
+  databaseURL:       "https://SEU_PROJETO-default-rtdb.firebaseio.com",
+  projectId:         "SEU_PROJETO",
+  storageBucket:     "SEU_PROJETO.appspot.com",
+  messagingSenderId: "SEU_SENDER_ID",
+  appId:             "SEU_APP_ID"
+};
+
+// Caminho raiz dentro do banco onde os dados ficam salvos.
+// Estrutura final no Firebase: personagens_topicos/{espacoFixo}/characters
+const DB_ROOT_PATH = 'personagens_topicos';
+
+// ═══════════════════════════════════════════════════════════════
+//  🔑 SENHA DE ACESSO
+//  Troque pelo valor que você quiser usar como senha do site.
+//  Só quem digitar exatamente esse valor consegue entrar e ver/editar
+//  os dados — é o que impede que outras pessoas mexam nos seus
+//  personagens mesmo com o site público no GitHub Pages.
+// ═══════════════════════════════════════════════════════════════
+const ACCESS_PASSWORD = "minha-senha-secreta";
+
+// Detecta automaticamente se o config acima ainda é o placeholder de exemplo.
+// Se for, o app roda em MODO DEMONSTRAÇÃO (sincroniza só entre abas do mesmo navegador).
+const DEMO_MODE = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.includes('SUA_API_KEY');
+
+// ─────────────────────────────────────
+//  STORAGE LAYER (localStorage + chrome.storage.local fallback)
+//  Funciona como site (file://, http/https) e como extensão de navegador.
+//  Serve como CACHE OFFLINE: sempre grava localmente primeiro, depois
+//  sincroniza com a nuvem — garante que o app nunca "quebra" sem internet.
+// ─────────────────────────────────────
+const STORAGE_KEY = 'personagens_topicos_data_v1';
+const ACCESS_KEY_STORAGE = 'personagens_topicos_access_key';
+
+const isExtensionEnv = (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local);
+
+const Storage = {
+  async get(key) {
+    if (isExtensionEnv) {
+      return new Promise((resolve) => {
+        try {
+          chrome.storage.local.get([key], (result) => resolve(result ? result[key] : undefined));
+        } catch (e) { resolve(undefined); }
+      });
+    }
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : undefined;
+    } catch (e) { return undefined; }
+  },
+  async set(key, value) {
+    if (isExtensionEnv) {
+      return new Promise((resolve) => {
+        try {
+          chrome.storage.local.set({ [key]: value }, () => resolve(!chrome.runtime.lastError));
+        } catch (e) { resolve(false); }
+      });
+    }
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) { return false; }
+  }
+};
+
+// ─────────────────────────────────────
+//  CLOUD SYNC — Firebase Realtime Database
+//  Em modo real: listener 'value' (onValue) atualiza a tela sozinha,
+//  sem precisar de F5, assim que outro dispositivo salvar algo.
+//  Em modo demo: replica entre abas/janelas do mesmo navegador via
+//  localStorage 'storage' event + BroadcastChannel, só para testes.
+// ─────────────────────────────────────
+const CLOUD_TIMEOUT_MS = 8000;
+function withTimeout(promise, ms, fallbackValue) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+  ]);
+}
+
+const CloudSync = {
+  ref: null,
+  db: null,
+  accessKey: null,
+  channel: null,
+  ready: false,
+
+  async init(accessKey) {
+    this.accessKey = accessKey;
+    if (DEMO_MODE) return this._initDemo();
+    return this._initFirebase();
+  },
+
+  async _initFirebase() {
+    try {
+      await withTimeout(this._loadFirebaseSDK(), CLOUD_TIMEOUT_MS, null);
+      if (!window.firebase || !firebase.database) {
+        console.error('SDK do Firebase não carregou a tempo (verifique a conexão ou o domínio bloqueado).');
+        updateConnectionBadge('offline');
+        this.hadRemoteData = false;
+        return;
+      }
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      this.db = firebase.database();
+      this.ref = this.db.ref(`${DB_ROOT_PATH}/${this.accessKey}/characters`);
+      this._watchConnection();
+
+      // IMPORTANTE: busca o estado remoto atual ANTES de decidir se este é
+      // realmente o "primeiro uso" — evita que um segundo dispositivo (ex.:
+      // celular sem cache local) sobrescreva dados reais já salvos na nuvem.
+      // Tem um limite de tempo: se a rede travar, seguimos em frente sem bloquear.
+      let snapshot = null;
+      try { snapshot = await withTimeout(this.ref.once('value'), CLOUD_TIMEOUT_MS, null); }
+      catch (e) { snapshot = null; }
+      const remoteData = snapshot ? snapshot.val() : null;
+      const remoteList = Array.isArray(remoteData) ? remoteData : (remoteData ? Object.values(remoteData) : null);
+      this.hadRemoteData = !!(remoteList && remoteList.length);
+      if (this.hadRemoteData) this._applyRemoteData(remoteList);
+
+      this._listenValue(); // passa a ouvir mudanças futuras em tempo real
+      this.ready = true;
+    } catch (e) {
+      console.error('Falha ao iniciar Firebase, caindo para modo offline local:', e);
+      updateConnectionBadge('offline');
+      this.hadRemoteData = false;
+    }
+  },
+
+  _loadFirebaseSDK() {
+    if (window.firebase && firebase.database) return Promise.resolve();
+    const urls = [
+      'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
+      'https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js'
+    ];
+    const loadOne = (src) => new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('Falha ao carregar ' + src));
+      document.head.appendChild(s);
+    });
+    return urls.reduce((p, url) => p.then(() => loadOne(url)), Promise.resolve());
+  },
+
+  _listenValue() {
+    this.ref.on('value', (snapshot) => {
+      const data = snapshot.val();
+      this._applyRemoteData(Array.isArray(data) ? data : (data ? Object.values(data) : null));
+    }, (err) => {
+      console.error('Erro no listener em tempo real:', err);
+    });
+  },
+
+  _watchConnection() {
+    this.db.ref('.info/connected').on('value', (snap) => {
+      updateConnectionBadge(snap.val() ? 'online' : 'offline');
+    });
+  },
+
+  _applyRemoteData(data) {
+    if (!data) return;
+    const normalized = normalizeCharacterList(data);
+    const incoming = JSON.stringify(normalized);
+    const current = JSON.stringify(characters);
+    if (incoming === current) return; // evita re-render do próprio eco de escrita
+    characters = normalized;
+    Storage.set(STORAGE_KEY, characters);
+    onRemoteDataChanged();
+  },
+
+  write(data) {
+    if (DEMO_MODE) return this._writeDemo(data);
+    if (!this.ref) return Promise.resolve(false);
+    return this.ref.set(data).then(() => true).catch((e) => { console.error('Erro ao gravar na nuvem:', e); return false; });
+  },
+
+  // ── MODO DEMO (sem Firebase configurado) ──
+  _initDemo() {
+    this.demoKey = 'demo_cloud_' + this.accessKey;
+    try { this.channel = new BroadcastChannel('cloud_sync_' + this.accessKey); }
+    catch (e) { this.channel = null; }
+    if (this.channel) {
+      this.channel.onmessage = (ev) => this._applyRemoteData(ev.data);
+    }
+    window.addEventListener('storage', (e) => {
+      if (e.key === this.demoKey && e.newValue) {
+        try { this._applyRemoteData(JSON.parse(e.newValue)); } catch (err) {}
+      }
+    });
+    // Verifica se já existe estado "remoto" (outra aba) salvo antes de semear.
+    const existingRaw = localStorage.getItem(this.demoKey);
+    this.hadRemoteData = false;
+    if (existingRaw) {
+      try {
+        const data = JSON.parse(existingRaw);
+        if (Array.isArray(data) && data.length) { this.hadRemoteData = true; this._applyRemoteData(data); }
+      } catch (e) {}
+    }
+    this.ready = true;
+    updateConnectionBadge('demo');
+  },
+  _writeDemo(data) {
+    try {
+      localStorage.setItem(this.demoKey, JSON.stringify(data));
+      if (this.channel) this.channel.postMessage(data);
+      return Promise.resolve(true);
+    } catch (e) { return Promise.resolve(false); }
+  }
+};
+
+function updateConnectionBadge(state) {
+  const el = document.getElementById('conn-badge');
+  const txt = document.getElementById('conn-badge-text');
+  if (!el || !txt) return;
+  el.classList.remove('online', 'demo');
+  if (state === 'online') { el.classList.add('online'); txt.textContent = 'Sincronizado na nuvem'; }
+  else if (state === 'demo') { el.classList.add('demo'); txt.textContent = 'Modo demo (só entre abas)'; }
+  else { txt.textContent = 'Offline — salvando localmente'; }
+}
+
+// Chamado quando dados chegam de OUTRO dispositivo/aba em tempo real.
+// Evita sobrescrever um campo que o usuário esteja digitando no momento.
+function onRemoteDataChanged() {
+  renderGrid();
+  const active = document.activeElement;
+  const isTypingInDetail = active && active.closest && active.closest('#view-detail') &&
+    (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+  if (document.getElementById('view-detail').classList.contains('active') && currentId && getChar() && !isTypingInDetail) {
+    openDetail(currentId);
+  }
+  flashIndicator(null, '🔄 Atualizado em outro dispositivo');
+}
+
+
+let saveDebounceTimer = null;
+let hideIndicatorTimer = null;
+
+function flashIndicator(state, text) {
+  const el = document.getElementById('save-indicator');
+  const txt = document.getElementById('save-indicator-text');
+  el.classList.remove('saving', 'error');
+  if (state) el.classList.add(state);
+  txt.textContent = text;
+  el.classList.add('show');
+  clearTimeout(hideIndicatorTimer);
+  hideIndicatorTimer = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+async function persistNow() {
+  flashIndicator('saving', 'Salvando...');
+  // 1) Sempre grava localmente primeiro — garante que nada se perde offline.
+  await Storage.set(STORAGE_KEY, characters);
+  // 2) Tenta sincronizar com a nuvem. Se estiver offline, o Firebase SDK
+  //    enfileira a escrita e reenvia automaticamente ao reconectar; aqui
+  //    apenas refletimos o resultado no indicador, sem travar a UI.
+  const ok = await CloudSync.write(characters);
+  if (ok) flashIndicator(null, DEMO_MODE ? 'Salvo (demo) ✓' : 'Sincronizado ✓');
+  else flashIndicator('error', 'Salvo localmente — sincroniza ao reconectar');
+}
+
+// Chamar sempre que o estado mudar. Debounce curto para agrupar
+// digitações rápidas, mas a experiência continua "instantânea".
+function save() {
+  clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = setTimeout(persistNow, 250);
+}
+
+// ─────────────────────────────────────
+//  PALETTE & CONSTANTS
+// ─────────────────────────────────────
+const PALETTE = ['#a78bfa','#f472b6','#34d399','#60a5fa','#fb923c','#facc15','#e879f9','#4ade80','#f87171','#38bdf8'];
+const EMOJIS  = ['⚔️','🔥','🌙','🐉','✨','🌊','🍃','💜','🧊','⚡','🎭','🌸','🦋','💀','🌀','🦊','🗡️','🔮','🌺','🤖','🧙','🏹','🛡️','🐺','🦅'];
+
+// ─────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────
+const DEFAULT_CHARACTERS = [
+  {
+    id:1, name:'Arya Stark', emoji:'⚔️', color:'#a78bfa', avatar:null,
+    class:'Assassina', level:18, money:'320 Gold', cargo:'Sem Rosto',
+    appearance:'Cabelos castanhos curtos, olhos cinza aço, compleição leve e ágil',
+    description:'Herdeira da Casa Stark treinada pelos Faceless Men. Domina as artes de combate e disfarce.',
+    tasks:[{id:1,text:'Completar treinamento Braavosi',done:true},{id:2,text:'Vingar a família',done:false}],
+    notes:['Aprendeu Braavosi com Syrio Forel.','Carrega Agulha, espada presenteada por Jon Snow.'],
+    gallery:[],
+    powers:[{name:'Troca de Rosto',desc:'Assume a aparência de qualquer pessoa usando os rostos dos mortos.'},{name:'Furtividade',desc:'Movimenta-se sem fazer ruído e ataca de surpresa.'}],
+    items:[{name:'Agulha',desc:'Espada fina do tipo estoque, presente de Jon Snow.'},{name:'Lista de Nomes',desc:'Sua lista mental de alvos a eliminar.'}],
+    titles:[{name:'Sem Rosto',desc:'Título dado pelos Faceless Men de Braavos.'},{name:'Herdeira de Winterfell',desc:'Por sangue da Casa Stark.'}]
+  },
+  {
+    id:2, name:'Zuko', emoji:'🔥', color:'#fb923c', avatar:null,
+    class:'Firebender', level:25, money:'1.200 PO', cargo:'Firelord',
+    appearance:'Cabelos negros presos, cicatriz no olho esquerdo, porte nobre e sério',
+    description:'Príncipe banido da Nação do Fogo. Sua jornada é de redenção e autodescoberta.',
+    tasks:[{id:1,text:'Dominar o Fogo Azul',done:false},{id:2,text:'Reconciliar-se com o passado',done:true}],
+    notes:['A cicatriz é símbolo de sua luta interna.','Aprendeu Firebending com os Dragões Ran e Shaw.'],
+    gallery:[],
+    powers:[{name:'Firebending',desc:'Manipulação do fogo com chi interno puro.'},{name:'Redirecionamento de Raios',desc:'Técnica aprendida com o Tio Iroh para deflectir relâmpagos.'}],
+    items:[{name:'Espadas Duais',desc:'Par de espadas curvas — símbolo do Guerreiro Azul.'},{name:'Cartas da Mãe',desc:'Memórias deixadas pela Princesa Ursa.'}],
+    titles:[{name:'Príncipe da Nação do Fogo',desc:'Título de nascimento.'},{name:'Firelord',desc:'Após derrotar Ozai e encerrar a Guerra.'}]
+  },
+  {
+    id:3, name:'Luz Noceda', emoji:'🌙', color:'#60a5fa', avatar:null,
+    class:'Bruxa de Glyphs', level:14, money:'80 Snails', cargo:'Aprendiz de Eda',
+    appearance:'Cabelos escuros ondulados, olhos castanhos, pele morena, sempre animada',
+    description:'Humana curiosa presa no Mundo dos Demônios. Cria feitiços sem feitiço natural.',
+    tasks:[{id:1,text:'Aprender glyphs elementais',done:false},{id:2,text:'Derrotar Belos',done:false}],
+    notes:['Desenha glyphs de luz na própria pele para conjurar magias.','Ama anime e é fã de Azura.'],
+    gallery:[],
+    powers:[{name:'Glyphs de Luz',desc:'Escreve glyphs no braço para criar magias únicas sem feitiço natural.'},{name:'Conexão Oracle',desc:'Vínculo especial com o Palácio da Coruja.'}],
+    items:[{name:'Cajado da Coruja',desc:'Arma e companheiro mágico que responde aos comandos dela.'},{name:'Livro de Encantamentos de Eda',desc:'Principal fonte de aprendizado de magia.'}],
+    titles:[{name:'Aprendiz de Eda',desc:'Discípula oficial da Bruxa Coruja.'},{name:'Escolhida do Palácio',desc:'Conexão mística com o Palácio da Coruja.'}]
+  }
+];
+
+let characters = [];
+let currentId = null;
+let selectedEmoji = EMOJIS[0];
+
+// ─────────────────────────────────────
+//  NORMALIZAÇÃO DE DADOS VINDOS DA NUVEM
+//  O Firebase Realtime Database APAGA campos que são listas vazias
+//  (ex: gallery:[], tasks:[]) ao salvar — ele não os guarda como "[]",
+//  simplesmente remove o campo. Isso quer dizer que, ao ler de volta,
+//  um personagem pode chegar sem 'tasks', 'gallery', etc. Sem essa
+//  normalização, qualquer render que faça c.tasks.filter(...) ou
+//  c.gallery.length quebra com "Cannot read properties of undefined".
+// ─────────────────────────────────────
+function normalizeCharacter(c) {
+  return {
+    id: c.id ?? Date.now(),
+    name: c.name || 'Sem nome',
+    emoji: c.emoji || EMOJIS[0],
+    color: c.color || PALETTE[0],
+    avatar: c.avatar || null,
+    class: c.class || '',
+    level: c.level || 1,
+    money: c.money || '',
+    cargo: c.cargo || '',
+    appearance: c.appearance || '',
+    description: c.description || '',
+    tasks: Array.isArray(c.tasks) ? c.tasks : [],
+    notes: Array.isArray(c.notes) ? c.notes : [],
+    gallery: Array.isArray(c.gallery) ? c.gallery : [],
+    powers: Array.isArray(c.powers) ? c.powers : [],
+    items: Array.isArray(c.items) ? c.items : [],
+    titles: Array.isArray(c.titles) ? c.titles : []
+  };
+}
+function normalizeCharacterList(list) {
+  return Array.isArray(list) ? list.map(normalizeCharacter) : [];
+}
+
+function getChar() { return characters.find(c=>c.id===currentId); }
+
+// ─────────────────────────────────────
+//  RENDER GRID
+// ─────────────────────────────────────
+function renderGrid(filter='') {
+  const grid = document.getElementById('chars-grid');
+  grid.innerHTML = '';
+  const list = filter ? characters.filter(c=>c.name.toLowerCase().includes(filter.toLowerCase())) : characters;
+  if (!list.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">Nenhum personagem encontrado.</div>'; return; }
+
+  list.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'char-card';
+    card.innerHTML = `
+      <div class="card-color-bar" style="background:${c.color}"></div>
+      <div class="card-top">
+        <div class="card-avatar" style="border-color:${c.color};background:${c.color}18">
+          ${c.avatar ? `<img src="${c.avatar}" alt="${c.name}"/>` : `<span>${c.emoji}</span>`}
+        </div>
+        <div class="card-title-block">
+          <div class="card-name">${c.name}</div>
+          <div class="card-role" style="background:${c.color}22;color:${c.color}">${c.emoji} ${c.class||'—'}</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-stats">
+        <div class="stat-item">
+          <div class="stat-label">Nível</div>
+          <div class="stat-value highlight" style="color:${c.color}">⬆ ${c.level||'—'}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Recursos</div>
+          <div class="stat-value">💰 ${c.money||'—'}</div>
+        </div>
+        <div class="stat-item" style="grid-column:1/-1">
+          <div class="stat-label">Cargo</div>
+          <div class="stat-value">🏅 ${c.cargo||'—'}</div>
+        </div>
+      </div>
+      ${c.appearance ? `<div class="card-appearance">✦ ${c.appearance}</div>` : ''}
+      <div class="card-badges">
+        ${c.tasks.filter(t=>!t.done).length ? `<span class="badge" style="background:${c.color}18;color:${c.color};border-color:${c.color}44">⏳ ${c.tasks.filter(t=>!t.done).length} pendente${c.tasks.filter(t=>!t.done).length>1?'s':''}</span>`:''}
+        ${c.powers.length ? `<span class="badge" style="background:var(--surface2);color:var(--text-muted);border-color:var(--border)">⚡ ${c.powers.length} poder${c.powers.length>1?'es':''}</span>`:''}
+        ${c.items.length ? `<span class="badge" style="background:var(--surface2);color:var(--text-muted);border-color:var(--border)">🎒 ${c.items.length} item${c.items.length>1?'ns':''}</span>`:''}
+      </div>
+    `;
+    card.addEventListener('click', ()=>openDetail(c.id));
+    grid.appendChild(card);
+  });
+}
+
+function filterCards(v) { renderGrid(v); }
+
+// ─────────────────────────────────────
+//  DETAIL
+// ─────────────────────────────────────
+function openDetail(id) {
+  currentId = id;
+  const c = getChar();
+
+  // Avatar
+  const avEl = document.getElementById('detail-avatar-el');
+  if (c.avatar) { avEl.innerHTML = `<img src="${c.avatar}" alt="${c.name}"/>`; }
+  else { avEl.innerHTML = `<span id="detail-av-emoji">${c.emoji}</span>`; }
+  avEl.style.borderColor = c.color;
+
+  document.getElementById('detail-breadcrumb').textContent = c.name;
+  document.getElementById('detail-name-edit').value = c.name;
+  document.getElementById('detail-class').value = c.class||'';
+  document.getElementById('detail-level').value = c.level||'';
+  document.getElementById('detail-money').value = c.money||'';
+  document.getElementById('detail-cargo').value = c.cargo||'';
+  document.getElementById('detail-appearance').value = c.appearance||'';
+  document.getElementById('detail-desc-edit').value = c.description||'';
+  document.getElementById('custom-color').value = c.color;
+
+  renderColorSwatches(c.color);
+  applyColorToUI(c.color);
+
+  // reset tabs
+  document.querySelectorAll('.tab-btn').forEach(b=>{b.classList.remove('active');b.style.color='';b.style.borderBottomColor='';});
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.tab-btn').classList.add('active');
+  document.querySelector('.tab-btn').style.color=c.color;
+  document.querySelector('.tab-btn').style.borderBottomColor=c.color;
+  document.getElementById('panel-tasks').classList.add('active');
+
+  renderTasks(); renderNotes(); renderGallery();
+  renderList('powers','powers-list','⚡');
+  renderList('items','items-list','🎒');
+  renderList('titles','titles-list','🏆');
+
+  showView('detail');
+}
+
+function goBack() { showView('dashboard'); renderGrid(); }
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+}
+
+function saveField(field, val) { const c=getChar(); if(c){ c[field]=field==='level'?Number(val)||val:val; save(); } }
+
+// ─────────────────────────────────────
+//  COLOR
+// ─────────────────────────────────────
+function renderColorSwatches(active) {
+  const wrap = document.getElementById('color-swatches');
+  wrap.innerHTML='';
+  PALETTE.forEach(col=>{
+    const sw=document.createElement('div');
+    sw.className='swatch'+(col===active?' active':'');
+    sw.style.background=col;
+    sw.title=col;
+    sw.onclick=()=>applyColor(col,false);
+    wrap.appendChild(sw);
+  });
+}
+function applyColor(color, custom) {
+  const c=getChar(); c.color=color;
+  document.getElementById('custom-color').value=color;
+  if(!custom) renderColorSwatches(color);
+  else document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  applyColorToUI(color);
+  document.getElementById('detail-avatar-el').style.borderColor=color;
+  renderGrid();
+  save();
+}
+function applyColorToUI(color) {
+  document.querySelectorAll('.tab-btn.active').forEach(b=>{b.style.color=color;b.style.borderBottomColor=color;});
+  document.querySelectorAll('.btn-primary').forEach(b=>b.style.background=color);
+}
+
+// ─────────────────────────────────────
+//  AVATAR UPLOAD
+// ─────────────────────────────────────
+function handleAvatarUpload(e) {
+  const file=e.target.files[0]; if(!file) return;
+  readImage(file);
+  e.target.value='';
+}
+function handleDrop(e) {
+  e.preventDefault();
+  const file=e.dataTransfer.files[0];
+  if(file && file.type.startsWith('image/')) readImage(file);
+}
+function readImage(file) {
+  const r=new FileReader();
+  r.onload=ev=>{
+    const c=getChar(); c.avatar=ev.target.result;
+    const avEl=document.getElementById('detail-avatar-el');
+    avEl.innerHTML=`<img src="${c.avatar}" alt="${c.name}"/>`;
+    renderGrid();
+    save();
+  };
+  r.readAsDataURL(file);
+}
+
+// ─────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────
+function switchTab(name,btn) {
+  const c=getChar();
+  document.querySelectorAll('.tab-btn').forEach(b=>{b.classList.remove('active');b.style.color='';b.style.borderBottomColor='';});
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  btn.style.color=c?.color||'var(--accent)';
+  btn.style.borderBottomColor=c?.color||'var(--accent)';
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// ─────────────────────────────────────
+//  TASKS
+// ─────────────────────────────────────
+function renderTasks() {
+  const c=getChar(); const list=document.getElementById('todo-list');
+  list.innerHTML='';
+  if(!c.tasks.length){list.innerHTML='<div class="empty">Nenhuma tarefa ainda.</div>';return;}
+  c.tasks.forEach(t=>{
+    const d=document.createElement('div');
+    d.className='todo-item'+(t.done?' done':'');
+    const cid='cb'+t.id;
+    d.innerHTML=`<input type="checkbox" id="${cid}" ${t.done?'checked':''} onchange="toggleTodo(${t.id})"/>
+      <label for="${cid}">${t.text}</label>
+      <button class="btn-icon" onclick="delTodo(${t.id})">✕</button>`;
+    list.appendChild(d);
+  });
+}
+function addTodo(){const i=document.getElementById('todo-input');const t=i.value.trim();if(!t)return;getChar().tasks.push({id:Date.now(),text:t,done:false});i.value='';renderTasks();save();}
+function toggleTodo(id){const t=getChar().tasks.find(t=>t.id===id);if(t)t.done=!t.done;renderTasks();save();}
+function delTodo(id){const c=getChar();c.tasks=c.tasks.filter(t=>t.id!==id);renderTasks();save();}
+
+// ─────────────────────────────────────
+//  NOTES
+// ─────────────────────────────────────
+function renderNotes(){
+  const c=getChar();const g=document.getElementById('notes-grid');g.innerHTML='';
+  c.notes.forEach((n,i)=>{
+    const card=document.createElement('div');card.className='note-card';
+    card.innerHTML=`<textarea placeholder="Escreva uma nota...">${n}</textarea><div class="note-footer"><button class="btn-icon" onclick="delNote(${i})">Excluir</button></div>`;
+    card.querySelector('textarea').addEventListener('input',e=>{c.notes[i]=e.target.value;save();});
+    g.appendChild(card);
+  });
+}
+function addNote(){getChar().notes.push('');renderNotes();save();}
+function delNote(i){getChar().notes.splice(i,1);renderNotes();save();}
+
+// ─────────────────────────────────────
+//  GALLERY
+// ─────────────────────────────────────
+function renderGallery(){
+  const c=getChar();const g=document.getElementById('gallery-grid');g.innerHTML='';
+  if(!c.gallery.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">Nenhuma mídia adicionada.</div>';return;}
+  c.gallery.forEach((item,i)=>{
+    const el=document.createElement('div');el.className='gallery-item';
+    const isImg=/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(item)||item.startsWith('data:image');
+    el.innerHTML=isImg?`<img src="${item}" alt="mídia"/>`:`<div class="gallery-link-card"><span>🔗</span><span>${item}</span></div>`;
+    el.innerHTML+=`<button class="del-overlay" onclick="delGallery(${i})">✕</button>`;
+    g.appendChild(el);
+  });
+}
+function addGalleryItem(){const i=document.getElementById('gallery-input');const v=i.value.trim();if(!v)return;getChar().gallery.push(v);i.value='';renderGallery();save();}
+function delGallery(i){getChar().gallery.splice(i,1);renderGallery();save();}
+
+// ─────────────────────────────────────
+//  GENERIC LIST
+// ─────────────────────────────────────
+function renderList(field,containerId,icon){
+  const c=getChar();const el=document.getElementById(containerId);el.innerHTML='';
+  if(!c[field].length){el.innerHTML='<div class="empty">Nada aqui ainda.</div>';return;}
+  c[field].forEach((item,i)=>{
+    const card=document.createElement('div');card.className='list-card';
+    card.innerHTML=`<div class="list-card-icon">${icon}</div>
+      <div class="list-card-body">
+        <input class="lc-name" value="${item.name}" placeholder="Nome..."/>
+        <textarea class="lc-desc" rows="2">${item.desc}</textarea>
+      </div>
+      <button class="btn-icon" onclick="delListItem('${field}','${containerId}','${icon}',${i})">✕</button>`;
+    card.querySelector('.lc-name').addEventListener('input',e=>{c[field][i].name=e.target.value;save();});
+    card.querySelector('textarea').addEventListener('input',e=>{c[field][i].desc=e.target.value;save();});
+    el.appendChild(card);
+  });
+}
+function addListItem(field,icon,defName,defDesc){getChar()[field].push({name:defName,desc:defDesc});renderList(field,field+'-list',icon);save();}
+function delListItem(field,containerId,icon,i){getChar()[field].splice(i,1);renderList(field,containerId,icon);save();}
+
+// ─────────────────────────────────────
+//  ADD MODAL
+// ─────────────────────────────────────
+selectedEmoji=EMOJIS[0];
+function openAddModal(){
+  selectedEmoji=EMOJIS[0];
+  renderEmojiPicker();
+  ['new-name','new-class','new-money','new-cargo','new-appearance','new-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('new-level').value='';
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('new-name').focus(),150);
+}
+function closeModal(){document.getElementById('add-modal').classList.remove('open');}
+function renderEmojiPicker(){
+  const p=document.getElementById('emoji-picker');p.innerHTML='';
+  EMOJIS.forEach(em=>{
+    const s=document.createElement('span');s.className='ep-opt'+(em===selectedEmoji?' sel':'');
+    s.textContent=em;s.onclick=()=>{selectedEmoji=em;renderEmojiPicker();};
+    p.appendChild(s);
+  });
+}
+function addCharacter(){
+  const name=document.getElementById('new-name').value.trim();
+  if(!name){document.getElementById('new-name').focus();return;}
+  const color=PALETTE[characters.length%PALETTE.length];
+  characters.push({
+    id:Date.now(),name,emoji:selectedEmoji,color,avatar:null,
+    class:document.getElementById('new-class').value.trim()||'Sem classe',
+    level:Number(document.getElementById('new-level').value)||1,
+    money:document.getElementById('new-money').value.trim()||'0 Gold',
+    cargo:document.getElementById('new-cargo').value.trim()||'—',
+    appearance:document.getElementById('new-appearance').value.trim()||'',
+    description:document.getElementById('new-desc').value.trim()||'Sem descrição ainda.',
+    tasks:[],notes:[],gallery:[],powers:[],items:[],titles:[]
+  });
+  closeModal();renderGrid();save();
+}
+
+// ─────────────────────────────────────
+//  ACESSO / CHAVE PRIVADA
+//  Garante que os dados de cada pessoa fiquem isolados no banco,
+//  já que o site fica público no GitHub Pages.
+// ─────────────────────────────────────
+function sanitizeAccessKey(raw) {
+  return raw.trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
+}
+
+async function doLogin() {
+  const input = document.getElementById('login-key');
+  const raw = input.value;
+  const hint = document.getElementById('login-hint');
+  if (!raw) {
+    hint.textContent = 'Digite a senha de acesso.';
+    hint.classList.add('error');
+    return;
+  }
+  if (raw !== ACCESS_PASSWORD) {
+    hint.textContent = 'Senha incorreta.';
+    hint.classList.add('error');
+    input.value = '';
+    input.focus();
+    return;
+  }
+  // Senha correta: usa um caminho fixo no banco (sempre o mesmo, baseado na senha).
+  const key = sanitizeAccessKey(ACCESS_PASSWORD);
+  hint.classList.remove('error');
+  hint.textContent = 'Conectando...';
+  localStorage.setItem(ACCESS_KEY_STORAGE, key);
+  await startAppWithKey(key);
+}
+
+function doLogout() {
+  if (!confirm('Deseja sair? Você precisará digitar a senha novamente para ver seus dados.')) return;
+  if (CloudSync.ref && CloudSync.ref.off) CloudSync.ref.off();
+  localStorage.removeItem(ACCESS_KEY_STORAGE);
+  location.reload();
+}
+
+async function startAppWithKey(key) {
+  // Mostra o dashboard IMEDIATAMENTE. A sincronização com a nuvem roda em
+  // segundo plano a partir daqui — nunca deve travar a tela de login.
+  showView('dashboard');
+  document.getElementById('demo-banner').style.display = DEMO_MODE ? 'block' : 'none';
+  updateConnectionBadge(DEMO_MODE ? 'demo' : 'offline');
+
+  // Carrega cache local imediatamente (funciona offline, sem espera de rede).
+  const saved = await Storage.get(STORAGE_KEY);
+  let isFirstRun = false;
+  if (Array.isArray(saved) && saved.length > 0) {
+    characters = normalizeCharacterList(saved);
+  } else {
+    characters = normalizeCharacterList(JSON.parse(JSON.stringify(DEFAULT_CHARACTERS)));
+    isFirstRun = true;
+  }
+  renderGrid();
+
+  // Conecta ao banco em nuvem (ou modo demo) e liga o listener em tempo real.
+  // Protegido por try/catch + timeout interno: se a nuvem travar ou falhar,
+  // o app continua funcionando normalmente em modo local/offline.
+  try {
+    await CloudSync.init(key);
+  } catch (e) {
+    console.error('Não foi possível conectar à nuvem, continuando offline:', e);
+    updateConnectionBadge('offline');
+  }
+
+  // Primeira execução com esta chave: envia os personagens padrão para a nuvem,
+  // mas só se a nuvem realmente não tinha nada (evita sobrescrever outro dispositivo).
+  if (isFirstRun && !CloudSync.hadRemoteData) save();
+}
+
+// ─────────────────────────────────────
+//  INIT — verifica se já existe uma Chave de Acesso salva; se não, pede login.
+// ─────────────────────────────────────
+async function initApp() {
+  const savedKey = localStorage.getItem(ACCESS_KEY_STORAGE);
+  if (savedKey) {
+    showView('dashboard');
+    await startAppWithKey(savedKey);
+  } else {
+    showView('login');
+    document.getElementById('demo-banner').style.display = DEMO_MODE ? 'block' : 'none';
+    setTimeout(() => document.getElementById('login-key').focus(), 150);
+  }
+}
+
+initApp();
+</script>
+</body>
+</html>
